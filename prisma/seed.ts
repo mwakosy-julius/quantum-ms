@@ -4,36 +4,38 @@ import * as bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const hashed = await bcrypt.hash("admin123", 10);
+  const adminHashed = await bcrypt.hash("razer12345", 10);
+  const staffHashed = await bcrypt.hash("quantumrazer123", 10);
+  const investorHashed = await bcrypt.hash("admin123", 10);
 
   // Users for login
   const admin = await prisma.user.upsert({
     where: { email: "admin@quantumrazer.com" },
-    update: {},
+    update: { password: adminHashed },
     create: {
       email: "admin@quantumrazer.com",
       name: "Admin",
-      password: hashed,
+      password: adminHashed,
       role: "ADMIN",
     },
   });
   const staff = await prisma.user.upsert({
     where: { email: "staff@quantumrazer.com" },
-    update: {},
+    update: { password: staffHashed },
     create: {
       email: "staff@quantumrazer.com",
       name: "Staff",
-      password: hashed,
+      password: staffHashed,
       role: "STAFF",
     },
   });
   const investorUser = await prisma.user.upsert({
     where: { email: "julius@quantumrazer.com" },
-    update: {},
+    update: { password: investorHashed },
     create: {
       email: "julius@quantumrazer.com",
       name: "Julius",
-      password: hashed,
+      password: investorHashed,
       role: "INVESTOR",
     },
   });

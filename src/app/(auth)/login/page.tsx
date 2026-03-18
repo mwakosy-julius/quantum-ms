@@ -35,9 +35,6 @@ function LoginForm() {
           <h1 className="text-2xl font-semibold text-[var(--metallic-silver-light)]">
             Quantum Razer
           </h1>
-          <p className="text-[var(--metallic-silver)] mt-1">
-            Investment & Inventory Management
-          </p>
         </div>
         <form
           onSubmit={handleSubmit}
@@ -63,7 +60,6 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded text-[var(--foreground)] placeholder-[var(--metallic-silver-dark)] focus:outline-none focus:ring-1 focus:ring-[var(--midnight-green)]"
-                placeholder="admin@quantumrazer.com"
                 required
               />
             </div>
@@ -91,9 +87,6 @@ function LoginForm() {
             Sign in
           </button>
         </form>
-        <p className="text-center text-[var(--metallic-silver-dark)] text-sm mt-4">
-          Admin: admin@quantumrazer.com | Investor: julius@quantumrazer.com / admin123
-        </p>
       </div>
     </div>
   );
