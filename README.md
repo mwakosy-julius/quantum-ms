@@ -47,14 +47,6 @@ A minimalistic web-based management platform for tracking investor capital, inve
 
 5. Open [http://localhost:3000](http://localhost:3000) and sign in.
 
-## Demo Accounts
-
-| Role     | Email                     | Password   |
-|----------|---------------------------|------------|
-| Admin    | admin@quantumrazer.com     | admin123   |
-| Staff    | staff@quantumrazer.com     | admin123   |
-| Investor | investor@quantumrazer.com  | admin123   |
-
 ## Theme
 
 Midnight green (`#004e64`) and metallic silver (`#a8a9ad`) – minimalistic dark interface.
