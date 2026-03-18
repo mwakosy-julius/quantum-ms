@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String    @id @default(cuid())
+  email      String    @unique
+  password   String
+  name       String
+  role       Role      @default(STAFF)
+  investorId String?   @unique
+  investor   Investor? @relation(fields: [investorId], references: [id])
+  createdAt  DateTime  @default(now())
+
+  sales Sale[]
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  INVESTOR
+}
+
+model Investor {
+  id              String    @id @default(cuid())
+  name            String
+  email           String
+  phone           String?
+  investmentAmount Float
+  units           Int       @default(1)
+  joinDate        DateTime  @default(now())
+  profitSharePct  Float     @default(100)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  dividends Dividend[]
+  user     User?
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  name            String
+  category        String
+  supplier        String?
+  purchasePrice   Float
+  sellingPrice    Float
+  stockQuantity   Int      @default(0)
+  minStockLevel   Int      @default(5)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  sales Sale[]
+}
+
+model Sale {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity    Int
+  salePrice   Float
+  totalValue  Float
+  saleDate    DateTime @default(now())
+  salespersonId String?
+  salesperson User?    @relation(fields: [salespersonId], references: [id])
+
+  @@index([saleDate])
+}
+
+model Dividend {
+  id         String   @id @default(cuid())
+  investorId String
+  investor   Investor @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  amount     Float
+  paidDate   DateTime @default(now())
+  profitShare Float
+  createdAt  DateTime @default(now())
+
+  @@index([investorId])
+}
