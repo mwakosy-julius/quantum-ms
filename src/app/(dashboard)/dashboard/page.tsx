@@ -10,6 +10,7 @@ import {
   Users,
   AlertTriangle,
   ShoppingCart,
+  CalendarClock,
 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
@@ -41,6 +42,41 @@ export default async function DashboardPage() {
   const totalInventoryCost = sales.reduce((s, sa) => s + sa.quantity * sa.product.purchasePrice, 0);
   const totalProfit = totalSalesRevenue - totalInventoryCost;
   const totalDividendsPaid = dividends.reduce((s, d) => s + d.amount, 0);
+  const investorPoolFromProfit = Math.max(0, totalProfit * 0.6);
+  const businessProfitShare = Math.max(0, totalProfit * 0.4);
+  const remainingInvestorProfit = Math.max(0, investorPoolFromProfit - totalDividendsPaid);
+  const lastDistributionDate = dividends.length
+    ? new Date(Math.max(...dividends.map((d) => new Date(d.paidDate).getTime())))
+    : null;
+
+  const dbUser = session.user.email
+    ? await prisma.user.findUnique({ where: { email: session.user.email } })
+    : null;
+  const myInvestor = role === "INVESTOR" && dbUser?.investorId
+    ? investors.find((inv) => inv.id === dbUser.investorId) ?? null
+    : null;
+  const myDividendsPaid = myInvestor
+    ? dividends
+        .filter((d) => d.investorId === myInvestor.id)
+        .reduce((s, d) => s + d.amount, 0)
+    : 0;
+  const myCurrentShareRatio = myInvestor && totalCapital > 0
+    ? myInvestor.investmentAmount / totalCapital
+    : 0;
+  const myEstimatedPendingDividend = myInvestor
+    ? remainingInvestorProfit * myCurrentShareRatio
+    : 0;
+  const investorDistributionPreview = investors
+    .map((inv) => {
+      const shareRatio = totalCapital > 0 ? inv.investmentAmount / totalCapital : 0;
+      return {
+        id: inv.id,
+        name: inv.name,
+        shareRatio,
+        nextAmount: remainingInvestorProfit * shareRatio,
+      };
+    })
+    .sort((a, b) => b.nextAmount - a.nextAmount);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -120,6 +156,48 @@ export default async function DashboardPage() {
             icon={Users}
           />
         )}
+        {role === "ADMIN" && (
+          <StatCard
+            title="Undistributed Investor Profit"
+            value={formatCurrency(remainingInvestorProfit)}
+            icon={DollarSign}
+          />
+        )}
+        {role === "ADMIN" && (
+          <StatCard
+            title="Last Distribution Date"
+            value={lastDistributionDate ? lastDistributionDate.toLocaleDateString() : "No distributions yet"}
+            icon={CalendarClock}
+          />
+        )}
+        {role === "ADMIN" && (
+          <StatCard
+            title="Next Distributable Amount"
+            value={formatCurrency(remainingInvestorProfit)}
+            icon={TrendingUp}
+          />
+        )}
+        {role === "INVESTOR" && (
+          <StatCard
+            title="My Paid Dividends"
+            value={formatCurrency(myDividendsPaid)}
+            icon={Users}
+          />
+        )}
+        {role === "INVESTOR" && (
+          <StatCard
+            title="Last Distribution Date"
+            value={lastDistributionDate ? lastDistributionDate.toLocaleDateString() : "No distributions yet"}
+            icon={CalendarClock}
+          />
+        )}
+        {role === "INVESTOR" && (
+          <StatCard
+            title="Next Distributable Amount"
+            value={formatCurrency(myEstimatedPendingDividend)}
+            icon={TrendingUp}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -168,7 +246,61 @@ export default async function DashboardPage() {
             </div>
           </div>
         )}
+        {role === "INVESTOR" && (
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-6">
+            <h2 className="text-lg font-medium text-[var(--metallic-silver-light)] mb-4">
+              My Dividend Overview
+            </h2>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-[var(--metallic-silver)]">My Profit Share</span>
+                <span className="text-[var(--metallic-silver-light)] font-medium">
+                  {myInvestor ? `${(myCurrentShareRatio * 100).toFixed(2)}%` : "Not linked"}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-[var(--metallic-silver)]">Estimated Pending Dividend</span>
+                <span className="text-[var(--metallic-silver-light)] font-medium">
+                  {formatCurrency(myEstimatedPendingDividend)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-[var(--metallic-silver)]">Business Retained Profit (40%)</span>
+                <span className="text-[var(--metallic-silver-light)] font-medium">
+                  {formatCurrency(businessProfitShare)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {role === "ADMIN" && (
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-6">
+          <h2 className="text-lg font-medium text-[var(--metallic-silver-light)] mb-4">
+            Next Dividend Allocation by Investor
+          </h2>
+          {investorDistributionPreview.length > 0 ? (
+            <div className="space-y-2">
+              {investorDistributionPreview.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between text-sm border-b border-[var(--border)]/50 pb-2">
+                  <div>
+                    <p className="text-[var(--metallic-silver-light)]">{inv.name}</p>
+                    <p className="text-[var(--metallic-silver-dark)]">
+                      Share: {(inv.shareRatio * 100).toFixed(2)}%
+                    </p>
+                  </div>
+                  <p className="text-[var(--metallic-silver-light)] font-medium">
+                    {formatCurrency(inv.nextAmount)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[var(--metallic-silver-dark)] text-sm">No investors available</p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-6">

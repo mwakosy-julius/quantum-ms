@@ -16,12 +16,14 @@ export default async function DividendsPage() {
   });
 
   const sales = await prisma.sale.findMany({ include: { product: true } });
+  const totalDividendsPaid = dividends.reduce((s, d) => s + d.amount, 0);
   const totalRevenue = sales.reduce((s, sa) => s + sa.totalValue, 0);
   const totalCost = sales.reduce(
     (s, sa) => s + sa.quantity * sa.product.purchasePrice,
     0
   );
   const totalProfit = totalRevenue - totalCost;
+  const availableProfit = Math.max(0, totalProfit * 0.6 - totalDividendsPaid);
 
   return (
     <div className="space-y-6">
@@ -34,7 +36,7 @@ export default async function DividendsPage() {
             Dividend distribution history
           </p>
         </div>
-        {role === "ADMIN" && <DistributeDividendForm totalProfit={totalProfit} />}
+        {role === "ADMIN" && <DistributeDividendForm availableProfit={availableProfit} />}
       </div>
 
       <DividendsTable dividends={dividends} role={role} />

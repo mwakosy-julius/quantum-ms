@@ -33,7 +33,7 @@ export default async function SalesPage() {
           </p>
         </div>
         {(role === "ADMIN" || role === "STAFF") && (
-          <RecordSaleForm products={products} />
+          <RecordSaleForm products={products} role={role} />
         )}
       </div>
 

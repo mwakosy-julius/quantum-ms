@@ -8,19 +8,25 @@ import { ShoppingCart } from "lucide-react";
 
 interface RecordSaleFormProps {
   products: Product[];
+  role: string;
 }
 
-export default function RecordSaleForm({ products }: RecordSaleFormProps) {
+export default function RecordSaleForm({ products, role }: RecordSaleFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [salePrice, setSalePrice] = useState("");
+  const canEditSalePrice = role === "ADMIN";
 
   const selectedProduct = products.find((p) => p.id === productId);
   const total = selectedProduct
-    ? (salePrice ? Number(salePrice) : selectedProduct.sellingPrice) * Number(quantity || 0)
+    ? (
+        canEditSalePrice && salePrice
+          ? Number(salePrice)
+          : selectedProduct.sellingPrice
+      ) * Number(quantity || 0)
     : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,7 +40,7 @@ export default function RecordSaleForm({ products }: RecordSaleFormProps) {
         body: JSON.stringify({
           productId,
           quantity: Number(quantity),
-          salePrice: salePrice ? Number(salePrice) : undefined,
+          salePrice: canEditSalePrice && salePrice ? Number(salePrice) : undefined,
         }),
       });
       if (!res.ok) {
@@ -102,20 +108,31 @@ export default function RecordSaleForm({ products }: RecordSaleFormProps) {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-[var(--metallic-silver)] mb-1">
-                    Sale Price {selectedProduct && `(default: ${selectedProduct.sellingPrice})`}
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={salePrice}
-                    onChange={(e) => setSalePrice(e.target.value)}
-                    placeholder={selectedProduct ? String(selectedProduct.sellingPrice) : ""}
-                    className="w-full rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-[var(--foreground)]"
-                  />
-                </div>
+                {canEditSalePrice ? (
+                  <div>
+                    <label className="block text-sm text-[var(--metallic-silver)] mb-1">
+                      Sale Price {selectedProduct && `(default: ${selectedProduct.sellingPrice})`}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={salePrice}
+                      onChange={(e) => setSalePrice(e.target.value)}
+                      placeholder={selectedProduct ? String(selectedProduct.sellingPrice) : ""}
+                      className="w-full rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-[var(--foreground)]"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm text-[var(--metallic-silver)]">
+                      Sale Price:{" "}
+                      <span className="text-[var(--metallic-silver-light)]">
+                        {selectedProduct ? formatCurrency(selectedProduct.sellingPrice) : "-"}
+                      </span>
+                    </p>
+                  </div>
+                )}
                 {total > 0 && (
                   <p className="text-[var(--metallic-silver-light)] font-medium">Total: {formatCurrency(total)}</p>
                 )}

@@ -13,16 +13,27 @@ export async function POST(req: Request) {
     const role = (session.user as { role?: string }).role;
     if (role !== "ADMIN") return NextResponse.json({ error: "Admin only" }, { status: 403 });
 
-    const { totalProfit, distributionDate } = await req.json();
-    if (!totalProfit || totalProfit <= 0) {
-      return NextResponse.json({ error: "Invalid profit amount" }, { status: 400 });
-    }
+    const { distributionDate } = await req.json().catch(() => ({}));
 
     const investors = await prisma.investor.findMany();
     const totalCapital = investors.reduce((sum, inv) => sum + inv.investmentAmount, 0);
     if (totalCapital === 0) return NextResponse.json({ error: "No active investors" }, { status: 400 });
 
-    const investorPool = totalProfit * INVESTOR_SHARE;
+    const [sales, dividends] = await Promise.all([
+      prisma.sale.findMany({ include: { product: true } }),
+      prisma.dividend.aggregate({ _sum: { amount: true } }),
+    ]);
+
+    const totalRevenue = sales.reduce((s, sa) => s + sa.totalValue, 0);
+    const totalCost = sales.reduce((s, sa) => s + sa.quantity * sa.product.purchasePrice, 0);
+    const totalProfit = totalRevenue - totalCost;
+    const totalDividendsPaid = dividends._sum.amount ?? 0;
+    const availableInvestorProfit = Math.max(0, totalProfit * INVESTOR_SHARE - totalDividendsPaid);
+    if (availableInvestorProfit <= 0) {
+      return NextResponse.json({ error: "No undistributed investor profit available" }, { status: 400 });
+    }
+
+    const investorPool = availableInvestorProfit;
     const date = distributionDate ? new Date(distributionDate) : new Date();
 
     const dividendRecords = investors.map((inv) => {
@@ -53,6 +64,8 @@ export async function POST(req: Request) {
       success: true,
       distributed: investorPool,
       businessShare: totalProfit * BUSINESS_SHARE,
+      totalProfit,
+      totalDividendsPaid: totalDividendsPaid + investorPool,
       records: dividendRecords.length,
     });
   } catch (error) {

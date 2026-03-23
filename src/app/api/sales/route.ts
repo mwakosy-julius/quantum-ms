@@ -59,7 +59,8 @@ export async function POST(request: Request) {
     if (product.stockQuantity < quantity)
       return NextResponse.json({ error: "Insufficient stock" }, { status: 400 });
 
-    const price = salePrice != null ? Number(salePrice) : product.sellingPrice;
+    const isAdmin = role === "ADMIN";
+    const price = isAdmin && salePrice != null ? Number(salePrice) : product.sellingPrice;
     const totalValue = price * quantity;
 
     const dbUser = await prisma.user.findUnique({
